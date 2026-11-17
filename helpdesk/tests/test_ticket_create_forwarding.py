@@ -87,6 +87,11 @@ class TicketCreateForwardingTests(TestCase):
                 (self.owner_user, self.assignment_verb),
             ],
         )
+        self.client.force_login(self.recipient.employee_user_id)
+        response = self.client.get(
+            reverse("ticket-detail", kwargs={"ticket_id": ticket.pk})
+        )
+        self.assertContains(response, ticket.title)
 
     def test_form_assignees_are_preserved_when_forwarding_to_an_assignee(self):
         with patch.object(TicketsCreateFormView, "form_class", TicketFormWithAssignees):

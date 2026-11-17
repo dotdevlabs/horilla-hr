@@ -923,8 +923,8 @@ def can_view_ticket(request, ticket):
     """Whether the requester may see this ticket.
 
     The ticket owner, the owner's reporting manager, the department manager,
-    anyone assigned to it, or a holder of the model permission. Shared by the
-    views that render a ticket.
+    an assignee, the individual forwarding recipient, or a holder of the
+    model permission. Shared by the views that render a ticket.
     """
     return bool(
         request.user.has_perm("helpdesk.view_ticket")
@@ -932,6 +932,10 @@ def can_view_ticket(request, ticket):
         or is_department_manager(request, ticket)
         or request.user.employee_get == ticket.employee_id
         or request.user.employee_get in ticket.assigned_to.all()
+        or (
+            ticket.assigning_type == "individual"
+            and ticket.raised_on == str(request.user.employee_get.pk)
+        )
     )
 
 

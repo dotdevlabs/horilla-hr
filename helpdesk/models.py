@@ -26,6 +26,7 @@ PRIORITY = [
 MANAGER_TYPES = [
     ("department", _("Department")),
     ("job_position", _("Job Position")),
+    ("individual", _("Individual")),
 ]
 
 TICKET_TYPES = [
