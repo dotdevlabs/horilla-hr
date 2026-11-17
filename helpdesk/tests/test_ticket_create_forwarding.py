@@ -28,7 +28,10 @@ class TicketCreateForwardingTests(TestCase):
         cls.owner = make_employee(
             company=company, email=cls.owner_user.email, user=cls.owner_user
         )
-        cls.recipient = make_employee(company=company, email="recipient@test.horilla")
+        recipient_user = make_user("ticket-recipient")
+        cls.recipient = make_employee(
+            company=company, email=recipient_user.email, user=recipient_user
+        )
         cls.assignee = make_employee(company=company, email="assignee@test.horilla")
         cls.ticket_type = TicketType.objects.create(
             title="IT Support", type="service_request", prefix="ITS"
