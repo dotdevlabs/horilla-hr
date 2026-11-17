@@ -257,42 +257,40 @@ class TicketsCreateFormView(HorillaFormView):
                 employees = ticket.assigned_to.all()
                 assignees = [employee.employee_user_id for employee in employees]
                 assignees.append(ticket.employee_id.employee_user_id)
+                sender = self.request.user.employee_get
+                redirect = reverse("ticket-detail", kwargs={"ticket_id": ticket.id})
 
                 if ticket.assigning_type == "individual":
-                    try:
-                        employee = Employee.objects.get(id=ticket.raised_on)
-                        ticket.assigned_to.set([employee])
-                        ticket.save()
-                    except Employee.DoesNotExist:
-                        print(f"No employee found with identifier: {ticket.raised_on}")
-
-                employees = ticket.assigned_to.all()
-                assignees = [emp.employee_user_id for emp in employees]
-                assignees.append(ticket.employee_id.employee_user_id)
-
-                if (
-                    hasattr(ticket.get_raised_on_object(), "dept_manager")
-                    and not ticket.assigning_type == "individual"
-                ):
-                    if ticket.get_raised_on_object().dept_manager.all():
-                        manager = (
-                            ticket.get_raised_on_object()
-                            .dept_manager.all()
-                            .first()
-                            .manager
+                    employee = Employee.objects.filter(pk=ticket.raised_on).first()
+                    if employee and employee.employee_user_id:
+                        forwarded_user = employee.employee_user_id
+                        assignees = [
+                            user for user in assignees if user != forwarded_user
+                        ]
+                        notify.send(
+                            sender,
+                            recipient=[forwarded_user],
+                            verb=gettext_noop("A new Ticket has been forwarded to you"),
+                            icon="infinite",
+                            redirect=redirect,
                         )
-                        assignees.append(manager.employee_user_id)
+                else:
+                    destination = ticket.get_raised_on_object()
+                    if hasattr(destination, "dept_manager"):
+                        department_manager = destination.dept_manager.first()
+                        if department_manager:
+                            assignees.append(
+                                department_manager.manager.employee_user_id
+                            )
 
-                notify.send(
-                    self.request.user.employee_get,
-                    recipient=assignees,
-                    verb=gettext_noop("You have been assigned to a new Ticket"),
-                    icon="infinite",
-                    redirect=reverse(
-                        "ticket-detail",
-                        kwargs={"ticket_id": ticket.id},
-                    ),
-                )
+                if assignees:
+                    notify.send(
+                        sender,
+                        recipient=assignees,
+                        verb=gettext_noop("You have been assigned to a new Ticket"),
+                        icon="infinite",
+                        redirect=redirect,
+                    )
 
             else:
                 ticket = form.save()
